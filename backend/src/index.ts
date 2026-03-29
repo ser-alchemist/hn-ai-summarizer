@@ -14,7 +14,7 @@ app.use("/bookmark", bookmarkRoutes);
 app.use("/bookmarks", bookmarkRoutes);
 
 app.get("/", (req, res) => {
-    res.send("API running 🚀");
+    res.send("API running...");
 });
 
 app.listen(3000, () => {
