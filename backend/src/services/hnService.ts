@@ -1,8 +1,8 @@
 import axios from "axios";
+import { GoogleGenAI } from "@google/genai";
 
 const BASE_URL = "https://hacker-news.firebaseio.com/v0";
-const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
+const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3-flash-preview";
 
 type HNCommentNode = {
     id: number;
@@ -47,12 +47,22 @@ export const getCommentsTree = async (ids: number[]): Promise<HNCommentNode[]> =
     );
 };
 
+const decodeHtmlEntities = (text: string): string => {
+    return text
+        .replace(/&#x2F;/gi, "/")
+        .replace(/&quot;/gi, '"')
+        .replace(/&#x27;/gi, "'")
+        .replace(/&amp;/gi, "&")
+        .replace(/&lt;/gi, "<")
+        .replace(/&gt;/gi, ">");
+};
+
 const flattenCommentTexts = (nodes: HNCommentNode[]): string[] => {
     const out: string[] = [];
     const walk = (items: HNCommentNode[]) => {
         for (const node of items || []) {
             if (!node) continue;
-            const cleaned = (node.text || "")
+            const cleaned = decodeHtmlEntities(node.text || "")
                 .replace(/<[^>]*>/g, " ")
                 .replace(/\s+/g, " ")
                 .trim();
@@ -83,60 +93,77 @@ const fallbackSummary = (texts: string[]): DiscussionSummary => {
     };
 };
 
+const stripFence = (raw: string): string => {
+    return raw
+        .replace(/^```json\s*/i, "")
+        .replace(/^```\s*/i, "")
+        .replace(/\s*```$/, "")
+        .trim();
+};
+
 const summarizeWithLLM = async (texts: string[]): Promise<DiscussionSummary> => {
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
+    if (!process.env.GEMINI_API_KEY) {
+        console.warn("[summarizeWithLLM] GEMINI_API_KEY is missing; using fallback summary.");
         return fallbackSummary(texts);
     }
 
-    const payload = {
-        model: OPENAI_MODEL,
-        temperature: 0.2,
-        response_format: { type: "json_object" },
-        messages: [
-            {
-                role: "system",
-                content:
-                    "You summarize Hacker News discussions. Return strict JSON with keys: keyPoints (string[]), sentiment (positive|negative|mixed|neutral), shortSummary (string)."
-            },
-            {
-                role: "user",
-                content: `Summarize these HN comments:\n\n${texts.slice(0, 80).join("\n- ")}`
-            }
-        ]
-    };
+    const ai = new GoogleGenAI({});
+
+    const prompt = [
+        "You summarize Hacker News discussions.",
+        "Return ONLY valid JSON (no markdown, no extra text) with this exact shape:",
+        "{",
+        '  "keyPoints": ["string"],',
+        '  "sentiment": "positive|negative|mixed|neutral",',
+        '  "shortSummary": "string"',
+        "}",
+        "",
+        "Comments:",
+        `- ${texts.slice(0, 80).join("\n- ")}`
+    ].join("\n");
 
     try {
-        const res = await axios.post(
-            `${OPENAI_BASE_URL}/chat/completions`,
-            payload,
-            {
-                headers: {
-                    Authorization: `Bearer ${apiKey}`,
-                    "Content-Type": "application/json"
-                },
-                timeout: 25000
+        const response = await ai.models.generateContent({
+            model: GEMINI_MODEL,
+            contents: prompt,
+            config: {
+                temperature: 0.2,
+                responseMimeType: "application/json"
             }
-        );
+        });
 
-        const content = res.data?.choices?.[0]?.message?.content;
-        const parsed = JSON.parse(content || "{}");
+        const rawText = response.text || "{}";
+        const jsonText = stripFence(rawText);
 
-        if (!Array.isArray(parsed.keyPoints) || !parsed.shortSummary || !parsed.sentiment) {
+        let parsed: any;
+        try {
+            parsed = JSON.parse(jsonText);
+        } catch {
+            console.warn("[summarizeWithLLM] Gemini returned non-JSON output; using fallback.");
             return fallbackSummary(texts);
         }
 
-        const sentiment = ["positive", "negative", "mixed", "neutral"].includes(parsed.sentiment)
+        if (!Array.isArray(parsed.keyPoints) || typeof parsed.shortSummary !== "string" || typeof parsed.sentiment !== "string") {
+            console.warn("[summarizeWithLLM] Invalid Gemini JSON shape; using fallback.");
+            return fallbackSummary(texts);
+        }
+
+        const sentiment: DiscussionSummary["sentiment"] = ["positive", "negative", "mixed", "neutral"].includes(parsed.sentiment)
             ? parsed.sentiment
             : "mixed";
 
         return {
-            keyPoints: parsed.keyPoints.slice(0, 8),
+            keyPoints: parsed.keyPoints
+                .filter((v: unknown) => typeof v === "string")
+                .slice(0, 8),
             sentiment,
-            shortSummary: String(parsed.shortSummary),
+            shortSummary: parsed.shortSummary.trim(),
             source: "llm"
         };
-    } catch {
+    } catch (error: any) {
+        console.warn("[summarizeWithLLM] Gemini request failed; using fallback.", {
+            message: error?.message
+        });
         return fallbackSummary(texts);
     }
 };
