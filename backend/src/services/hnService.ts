@@ -23,7 +23,7 @@ type DiscussionSummary = {
     keyPoints: string[];
     sentiment: "positive" | "negative" | "mixed" | "neutral";
     shortSummary: string;
-    source: "llm" | "fallback";
+    source: "gemini" | "fallback";
 };
 
 const FEED_ENDPOINT: Record<string, string> = {
@@ -173,7 +173,7 @@ const summarizeWithLLM = async (texts: string[]): Promise<DiscussionSummary> => 
                 .slice(0, 8),
             sentiment,
             shortSummary: parsed.shortSummary.trim(),
-            source: "llm"
+            source: "gemini"
         };
     } catch (error: any) {
         console.warn("[summarizeWithLLM] Gemini request failed; using fallback.", {
