@@ -1,0 +1,21 @@
+/* reset and base theme */
+:root {
+  font-family: Inter, system-ui, -apple-system, sans-serif;
+  background-color: #f5f7fb;
+  color: #0f172a;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background: #f5f7fb;
+}
+
+a {
+  color: inherit;
+}
+
+#root {
+  min-height: 100vh;
+}
