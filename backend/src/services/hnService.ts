@@ -1,5 +1,13 @@
 import axios from "axios";
-import { GoogleGenAI } from "@google/genai";
+// Lazy-load ESM GoogleGenAI to avoid require/ESM mismatch under CJS output.
+let GoogleGenAILoader: any;
+const getGoogleGenAI = async () => {
+    if (!GoogleGenAILoader) {
+        const mod = await import("@google/genai");
+        GoogleGenAILoader = mod.GoogleGenAI;
+    }
+    return GoogleGenAILoader;
+};
 
 const BASE_URL = "https://hacker-news.firebaseio.com/v0";
 const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3-flash-preview";
@@ -16,6 +24,12 @@ type DiscussionSummary = {
     sentiment: "positive" | "negative" | "mixed" | "neutral";
     shortSummary: string;
     source: "llm" | "fallback";
+};
+
+const FEED_ENDPOINT: Record<string, string> = {
+    top: "topstories",
+    new: "newstories",
+    best: "beststories"
 };
 
 export const getTopStories = async () => {
@@ -107,6 +121,7 @@ const summarizeWithLLM = async (texts: string[]): Promise<DiscussionSummary> => 
         return fallbackSummary(texts);
     }
 
+    const GoogleGenAI = await getGoogleGenAI();
     const ai = new GoogleGenAI({});
 
     const prompt = [
@@ -181,3 +196,11 @@ export const summarizeDiscussionForStory = async (storyId: number): Promise<Disc
 
     return summarizeWithLLM(texts);
 };
+
+export const getStories = async (type: "top" | "new" | "best" = "top") => {
+    const feed = FEED_ENDPOINT[type] || FEED_ENDPOINT.top;
+    const res = await axios.get(`${BASE_URL}/${feed}.json`);
+    return res.data.slice(0, 50);
+};
+
+export const getStory = async (id: number) => getItem(id);
