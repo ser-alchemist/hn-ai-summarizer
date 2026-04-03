@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { prisma } from "../db";
+import { prisma } from "../prismaClient";
 
 export const addBookmark = async (req: Request, res: Response) => {
     try {

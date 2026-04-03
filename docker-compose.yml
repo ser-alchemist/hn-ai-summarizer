@@ -1,0 +1,42 @@
+#version: "3.9"
+
+services:
+  postgres:
+    image: postgres:17.9
+    container_name: hn_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mydb
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.backend
+    container_name: hn_ai_backend
+    restart: always
+    environment:
+      DATABASE_URL: postgres://postgres:password@postgres:5432/mydb
+    depends_on:
+      - postgres
+    ports:
+      - "3000:3000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.frontend
+    container_name: hn_ai_frontend
+    restart: always
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

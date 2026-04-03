@@ -98,8 +98,8 @@ export const StoryPage = () => {
             </section>
 
             <section className="card column">
+                <h2>Comments</h2>
                 <div className="card-header">
-                    <h2>Comments</h2>
                     {commentsLoading && <span className="muted">Loading…</span>}
                 </div>
                 {comments && <CommentTree comments={comments} />}

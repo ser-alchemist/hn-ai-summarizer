@@ -3,6 +3,8 @@ import cors from "cors";
 import storyRoutes from "./routes/storyRoutes";
 import commentRoutes from "./routes/commentRoutes";
 import bookmarkRoutes from "./routes/bookmarkRoutes";
+import dotenv from "dotenv";
+dotenv.config();
 
 const app = express();
 
