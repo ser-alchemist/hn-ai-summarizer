@@ -81,6 +81,9 @@ Services:
 - Backend: `http://localhost:3000`
 - PostgreSQL (host): `localhost:5433`
 
+## Demo Video
+https://drive.google.com/file/d/1c2cxoG2E7Xap8GD_COUgvzJBeVJXyjwv/view?usp=sharing
+
 ## Notes
 
 - If `GEMINI_API_KEY` is missing, backend falls back to a non-LLM summary path.
