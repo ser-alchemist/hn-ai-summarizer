@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+!.env.docker.example
+backend/.env
+
+# Generated code / ORM artifacts
+backend/src/generated/
+/generated/prisma
+/src/generated/prisma
+
+# Build outputs
+dist/
+dist-ssr/
+build/
+coverage/
+**/dist/
+**/build/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Local caches / temp
+*.local
+frontend/.vite/
+frontend/.cache/
+tmp/
+temp/
+*.tmp
+
+# Local database/runtime files
+pgdata/
+postgres_data/
+backend/prisma/dev.db
+backend/prisma/dev.db-journal
+
+# Editor / OS files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

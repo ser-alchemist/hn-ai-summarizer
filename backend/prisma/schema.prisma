@@ -1,0 +1,15 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma/client"
+}
+
+model Bookmark {
+  id        Int      @id @default(autoincrement())
+  storyId   Int
+  title     String
+  createdAt DateTime @default(now())
+}
