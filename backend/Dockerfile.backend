@@ -10,6 +10,9 @@ RUN npm ci  # <-- remove --omit=dev so devDependencies are installed
 # Copy source
 COPY . .
 
+# generate prisma client
+RUN npx prisma generate
+
 # Build TypeScript
 RUN npm run build
 
